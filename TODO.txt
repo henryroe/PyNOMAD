@@ -1,0 +1,21 @@
+
+# ASAP
+
+None.
+
+
+# Known Bugs
+
+None.
+
+
+# Someday/Maybe
+
+## Create a method of accessing a remote copy of the catalog.
+
+Questions:
+
+* consider whether trying to avoid big security holes (i.e. that someone might set this up for anything beyond their own private use)
+* have a server process running? or just run something remotely to the host machine via ssh?
+* push the necessary python code to host via ssh each time? or need a currently installed copy of nomad.py?
+

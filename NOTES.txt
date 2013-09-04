@@ -1,0 +1,15 @@
+# To create production version for distribution
+
+To create distribution package, use `sdist` option (source distribution):
+
+    python setup.py sdist
+
+
+# Project Log
+
+## 2013-09-04
+
+moved project from `svn` in `~/py/nomad` to `~/Dropbox/py/nomad/NOTES.txt` and into `git`
+
+
+

@@ -1,0 +1,5 @@
+include test_data/*.txt
+include nomad_test.py
+exclude test_range_of_ra_swatches.py
+exclude TODO
+exclude nomad.bbprojectd/*
