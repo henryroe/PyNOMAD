@@ -11,7 +11,7 @@ NOMAD is available at:
 Full copies of the NOMAD catalog are large:
     92Gigs uncompressed 
         or 
-    30Gigs when compressed with:  gunzip --best nomad/[0-9][0-9][0-9]/m*
+    30Gigs when compressed with:  gzip --best nomad/[0-9][0-9][0-9]/m*
     
 The nomad.py module works with either uncompressed or compressed copies
 of the catalog.
