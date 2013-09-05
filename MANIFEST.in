@@ -1,4 +1,7 @@
 include *.txt
 recursive-include docs *.txt
+include nomad.py
+recursive-include test *.py
+recursive-include test *.txt
 exclude NOTES.txt
 exclude TODO.txt
