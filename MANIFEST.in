@@ -1,5 +1,2 @@
-include test_data/*.txt
-include nomad_test.py
-exclude test_range_of_ra_swatches.py
-exclude TODO.txt
-exclude nomad.bbprojectd/*
+include *.txt
+recursive-include docs *.txt
