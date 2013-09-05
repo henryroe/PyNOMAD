@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='nomad',
+setup(name='PyNOMAD',
       version='0.1.0',
       description='Routines for accessing a self-hosted local copy of the USNO NOMAD stellar catalog',
       long_description=open('README.txt').read(),
