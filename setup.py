@@ -6,7 +6,7 @@ setup(name='PyNOMAD',
       long_description=open('README.txt').read(),
       author='Henry Roe',
       author_email='hroe@hroe.me',
-      url='http://pypi.python.org/pypi/PyNOMAD',
+      url='http://github.com/henryroe/PyNOMAD',
       license='LICENSE.txt',
       py_modules=['nomad', 'nomad_test'],
       install_requires=['pandas>=0.10.1'])

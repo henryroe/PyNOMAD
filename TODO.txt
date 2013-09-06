@@ -11,11 +11,15 @@ None.
 
 # Someday/Maybe
 
+## 2013-09-06 Clean up warnings during install
+
+
+
 ## test suite
 
 **2013-09-06 09:22:17MST:** Right now only way (apparent to me) to run nomad_test is e.g. `python nomad_test.py`.  Think we ought to offer a way to from within python, e.g. `import nomad_test` and `nomad_test.run_tests()` or something like that.
 
-## Create a method of accessing a remote copy of the catalog.
+## Consider whether it is worth creating a method of accessing a remote copy of the catalog.
 
 Questions:
 
