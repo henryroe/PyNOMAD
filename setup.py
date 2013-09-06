@@ -8,5 +8,5 @@ setup(name='PyNOMAD',
       author_email='hroe@hroe.me',
       url='http://pypi.python.org/pypi/PyNOMAD',
       license='LICENSE.txt',
-      py_modules=['nomad'],
+      py_modules=['nomad', 'nomad_test'],
       install_requires=['pandas>=0.10.1'])
