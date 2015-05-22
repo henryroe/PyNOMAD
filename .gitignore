@@ -1,3 +1,5 @@
+test-venv
+minimal-venv
 .DS_Store
 build
 pynomad.bbprojectd
