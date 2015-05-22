@@ -70,9 +70,8 @@ v1:  quickie where you rely on the existing canopy packages (just double check y
     cd PyNOMAD-0.1.2
     python setup.py install
     ipython
-    import pynomad
+    import nomad
     # TODO update next few lines
-    pynomad.set_2mass_path('/Volumes/Offloader/2MASS/')
     ra_range = [281., 281.05]  #    RA is in degrees
     dec_range = [-30.6, -30.55]  #  Dec is in degrees
     stars = py2mass.fetch_2mass_psc_box(ra_range, dec_range)
