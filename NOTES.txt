@@ -15,7 +15,7 @@ Create a venv & install pynomad & develop pynomad with:
     python setup.py develop
     cd test-venv
     ipython
-    import pynomad
+    import nomad
     # TODO: fix next few lines
     py2mass.set_2mass_path('/Volumes/Offloader/2MASS/')
     ra_range = [281., 281.05]  #    RA is in degrees

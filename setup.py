@@ -94,6 +94,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
+    package_data = {},
 #     package_data={
 #         'py2mass': ['format_descriptors/psc_format_descriptor.csv', 
 #                     'format_descriptors/xsc_format_descriptor.csv'],
