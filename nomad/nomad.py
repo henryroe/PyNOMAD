@@ -9,7 +9,13 @@ import sys
 import pickle
 
 
-__version__ = '0.1.0'
+base_dir = os.path.abspath(os.path.dirname(__file__))
+
+about = {}
+with open(os.path.join(base_dir, "__about__.py")) as f:
+    exec(f.read(), about)
+
+__version__ = about["__version__"]
 
 
 class Error(Exception):

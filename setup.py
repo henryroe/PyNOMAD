@@ -5,7 +5,7 @@ import os
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 about = {}
-with open(os.path.join(base_dir, "py2mass", "__about__.py")) as f:
+with open(os.path.join(base_dir, "nomad", "__about__.py")) as f:
     exec(f.read(), about)
 
 # Get the long description from the relevant file, converting from md to rst if possible
@@ -71,7 +71,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='2MASS catalog',
+    keywords='NOMAD catalog',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -94,10 +94,10 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    package_data={
-        'py2mass': ['format_descriptors/psc_format_descriptor.csv', 
-                    'format_descriptors/xsc_format_descriptor.csv'],
-    },
+#     package_data={
+#         'py2mass': ['format_descriptors/psc_format_descriptor.csv', 
+#                     'format_descriptors/xsc_format_descriptor.csv'],
+#     },
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages.
@@ -115,36 +115,3 @@ setup(
 #         ],
 #     },
 )
-
-
-# from setuptools import setup
-# 
-# setup(name='Py2MASS',
-#       version='0.1.2',
-#       description='Routines for accessing a self-hosted local copy of the 2MASS point-source and extended source catalogs (PSC, XSC)',
-#       long_description=open('README.md').read(),
-#       author='Henry Roe',
-#       author_email='hroe@hroe.me',
-#       url='https://github.com/henryroe/Py2MASS',
-#       license='LICENSE.txt',
-#       data_files=[('format_descriptors/', ['format_descriptors/psc_format_descriptor.csv',
-#                                            'format_descriptors/xsc_format_descriptor.csv'])],
-#       py_modules=['py2mass', 'py2mass_process_original_psc'],
-#       scripts=['py2mass'],
-#       install_requires=['pandas>=0.10.1'])
-
-
-
-
-from setuptools import setup
-
-setup(name='PyNOMAD',
-      version='0.1.0',
-      description='Routines for accessing a self-hosted local copy of the USNO NOMAD stellar catalog',
-      long_description=open('README.txt').read(),
-      author='Henry Roe',
-      author_email='hroe@hroe.me',
-      url='http://github.com/henryroe/PyNOMAD',
-      license='LICENSE.txt',
-      py_modules=['nomad', 'nomad_test'],
-      install_requires=['pandas>=0.10.1'])

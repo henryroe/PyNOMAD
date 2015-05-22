@@ -5,12 +5,12 @@ __all__ = [
     "__email__", "__license__", "__copyright__",
 ]
 
-__title__ = "py2mass"
-__summary__ = "Py2MASS is used for accessing a locally hosted copy of 2MASS PSC/XSC"
-__uri__ = "https://github.com/henryroe/Py2MASS"
+__title__ = "PyNOMAD"
+__summary__ = "Routines for accessing a self-hosted local copy of the USNO NOMAD stellar catalog"
+__uri__ = "https://github.com/henryroe/PyNOMAD"
 
 # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-__version__ = "0.1.3"
+__version__ = "0.1.1dev"
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in __version__
