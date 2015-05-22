@@ -1,3 +1,6 @@
+.DS_Store
+build
+pynomad.bbprojectd
 nomad.pyc
 dist
 PyNOMAD.egg-info
