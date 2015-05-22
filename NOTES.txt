@@ -39,7 +39,7 @@ Create a blank PyNOMAD repository on github, and then:
 TODO: develop a checklist for before uploading
 
     cd /Users/hroe/Dropbox/py/PyNOMAD
-    versionnumber=`python -c "execfile('pynomad/__about__.py') ; print(__version__)"`
+    versionnumber=`python -c "execfile('nomad/__about__.py') ; print(__version__)"`
     git tag -a $versionnumber -m "Tagged for version "$versionnumber
     git push origin $versionnumber
     
@@ -112,7 +112,7 @@ Now, finally ready to do a final build, tag release version, upload to github, a
     rm -rf dist/*  # you probably want to do this to clean up
     rm -rf build   # you may want to do this to clean up?
     python setup.py sdist
-    versionnumber=`python -c "execfile('pynomad/__about__.py') ; print(__version__)"`
+    versionnumber=`python -c "execfile('nomad/__about__.py') ; print(__version__)"`
     git tag -a $versionnumber -m "Tagged for version "$versionnumber
     git push origin $versionnumber
     python setup.py sdist
