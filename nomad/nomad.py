@@ -368,7 +368,7 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
     df['Hmag'] = df['H magnitude in integer 0.001 mag'] * 0.001
     df['Kmag'] = df['K magnitude in integer 0.001 mag'] * 0.001
     for cur_band in ['Bmag', 'Vmag', 'Rmag', 'Jmag', 'Hmag', 'Kmag']:
-        df[cur_band][df[cur_band] == 30.0] = np.NaN
+        df.loc[df[cur_band] == 30.0, cur_band] = np.NaN
     df['USNO-B1.0'] = [_determine_usnob1_id_from_usnob1_integer(a) for a in df['USNO-B1.0 ID integer']]
     # df['2MASS'] = df['2MASS ID integer']  # TODO: someday add conversion to 2MASS ID
     # df['YB6'] = df['YB6 ID integer']  # TODO: someday add conversion to YB6 ID
