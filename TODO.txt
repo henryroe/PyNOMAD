@@ -1,8 +1,6 @@
 
 # ASAP
 
-## Make `__version__` updates automatic in nomad.py
-
 
 # Known Bugs
 
