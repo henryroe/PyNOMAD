@@ -391,9 +391,8 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
 
 
 def _add_skycoord_radec_field(df):
-    df['radec'] = [SkyCoord(df.loc[ix, 'RAJ2000'], df.loc[ix, 'DEJ2000'], 
-                            frame=ICRS, unit=(units.degree, units.degree))
-                   for ix in df.index]
+    df['radec'] = SkyCoord(df['RAJ2000'].values, df['DEJ2000'].values, 
+                           frame=ICRS, unit=(units.degree, units.degree))
     return df
     
 
@@ -434,7 +433,7 @@ def _apply_proper_motion(df, epoch=2000.0):
                        'std. dev. of (6) in integer 0.0001 arcsec/year',
                        'central epoch of RA in integer 0.001 year',
                        'central epoch of SPD in integer 0.001 year']
-    return _add_skycoord_radec_field(df.drop(columns_to_drop, axis=1))
+    return df.drop(columns_to_drop, axis=1)
 
 
 def fetch_star_by_nomad_id(nomad_ids, epoch=None):
@@ -468,9 +467,9 @@ def fetch_star_by_nomad_id(nomad_ids, epoch=None):
             f.close()
     df = _convert_raw_byte_data_to_dataframe(''.join(raw_byte_data), nomad_ids=nomad_ids)
     if epoch is None:
-        return _apply_proper_motion(df, epoch=2000.0)
+        return _add_skycoord_radec_field(_apply_proper_motion(df, epoch=2000.0))
     else:
-        return _apply_proper_motion(df, epoch=epoch)
+        return _add_skycoord_radec_field(_apply_proper_motion(df, epoch=epoch))
 
 
 def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
@@ -524,7 +523,7 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
         stars = stars[(stars['RAJ2000'] >= ra_range[0]) & (stars['RAJ2000'] < ra_range[1])]
     else:
         stars = stars[(stars['RAJ2000'] < ra_range[1]) | (stars['RAJ2000'] >= ra_range[0])]
-    return stars
+    return _add_skycoord_radec_field(stars)
 
 
 if __name__ == '__main__':
