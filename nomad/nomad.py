@@ -7,7 +7,8 @@ import datetime
 import gzip
 import sys
 import pickle
-
+from astropy.coordinates import SkyCoord, ICRS
+from astropy import units
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -389,6 +390,13 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
     return df.drop(columns_to_drop, axis=1)
 
 
+def _add_skycoord_radec_field(df):
+    df['radec'] = [SkyCoord(df.loc[ix, 'RAJ2000'], df.loc[ix, 'DEJ2000'], 
+                            frame=ICRS, unit=(units.degree, units.degree))
+                   for ix in df.index]
+    return df
+    
+
 def _apply_proper_motion(df, epoch=2000.0):
     """
     Apply proper motion for input epoch.
@@ -426,7 +434,7 @@ def _apply_proper_motion(df, epoch=2000.0):
                        'std. dev. of (6) in integer 0.0001 arcsec/year',
                        'central epoch of RA in integer 0.001 year',
                        'central epoch of SPD in integer 0.001 year']
-    return df.drop(columns_to_drop, axis=1)
+    return _add_skycoord_radec_field(df.drop(columns_to_drop, axis=1))
 
 
 def fetch_star_by_nomad_id(nomad_ids, epoch=None):
