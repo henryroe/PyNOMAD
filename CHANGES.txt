@@ -3,6 +3,12 @@ PyNOMAD Change Log
 ~~~~~~~~~~~~~~~~~~
 
 ------------------
+v0.1.5, 2015-05-23
+------------------
+
+- include proper motion values in output dataframes (useful for making starlists for some observatories where they will calculate the proper motion for the specific date)
+
+------------------
 v0.1.4, 2015-05-23
 ------------------
 

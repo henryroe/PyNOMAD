@@ -424,6 +424,8 @@ def _apply_proper_motion(df, epoch=2000.0):
     pm_err_DEC = (years_since_central_epoch_DEC *
                   df['std. dev. of (6) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.))
     df['errDEJ2000'] = np.sqrt((base_err_DEC) ** 2 + (pm_err_DEC) ** 2)
+    df['proper motion of RA*COS(dec) arcsec/year'] = df['proper motion of RA*COS(dec) in integer 0.0001 arcsec/year'] * 0.0001
+    df['proper motion of Dec in arcsec/year'] = df['proper motion of SPD in integer 0.0001 arcsec/year'] * 0.0001
     columns_to_drop = ['RAJ2000_epoch2000', 'DEJ2000_epoch2000',
                        'std. dev. of RA*COS(dec) in integer 0.001 arcsec at central epoch',
                        'std. dev. of SPD in integer 0.001 arcsec at central epoch',
