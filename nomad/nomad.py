@@ -9,6 +9,7 @@ import sys
 import pickle
 from astropy.coordinates import SkyCoord, ICRS
 from astropy import units
+import glob
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -36,6 +37,10 @@ def _find_nomad_dir():
     paths_to_search = [os.environ.get('NOMAD_DIR')]
     paths_to_search.append('~/nomad/')
     paths_to_search.append('~/nomad_gz/')
+    for cur_path in glob.glob('/Volumes/*/nomad'):
+        paths_to_search.append(cur_path)
+    for cur_path in glob.glob('/Volumes/*/nomad_gz'):
+        paths_to_search.append(cur_path)
     for cur_path_to_test in paths_to_search:
         if cur_path_to_test is not None:
             if os.path.isdir(os.path.expanduser(cur_path_to_test)):
@@ -45,6 +50,9 @@ def _find_nomad_dir():
     print "           nomad.set_nomad_path('~/my_nomad_dir')"
     return None
 
+def set_nomad_path(nomad_path):
+    global _nomad_dir
+    _nomad_dir = nomad_path
 
 _nomad_dir = _find_nomad_dir()
 _nomad_record_length_bytes = 22 * 4
@@ -298,12 +306,12 @@ def _process_epoch(epoch):
 
 def _read_accelerator_file(file_number):
     nomad_filenum_str = '%04i' % file_number
-    if os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.acc'):
-        df = read_csv(open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.acc', 'r'),
+    if os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.acc')):
+        df = read_csv(open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.acc'), 'r'),
                       sep='\s+', header=None, names=['ra_band', 'start_record', 'num_records'],
                       index_col='ra_band')
-    elif os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.acc.gz'):
-        df = read_csv(gzip.open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.acc.gz', 'r'),
+    elif os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.acc.gz')):
+        df = read_csv(gzip.open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.acc.gz'), 'r'),
                       sep='\s+', header=None, names=['ra_band', 'start_record', 'num_records'],
                       index_col='ra_band')
     else:
@@ -438,7 +446,7 @@ def _apply_proper_motion(df, epoch=2000.0):
     return df.drop(columns_to_drop, axis=1)
 
 
-def fetch_star_by_nomad_id(nomad_ids, epoch=None):
+def fetch_star_by_nomad_id(nomad_ids, epoch=None, add_SkyCoord_field=True):
     """
     nomad_ids - can be either a single NOMAD identifier, e.g.:
                     '0999-0192017'
@@ -457,10 +465,10 @@ def fetch_star_by_nomad_id(nomad_ids, epoch=None):
     for i in range(nstars):
         if raw_byte_data[i] is None:
             nomad_filenum_str = '%04i' % file_numbers[i]
-            if os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat'):
-                f = open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat', 'rb')
-            elif os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat.gz'):
-                f = gzip.open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat.gz', 'rb')
+            if os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat')):
+                f = open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat'), 'rb')
+            elif os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat.gz')):
+                f = gzip.open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat.gz'), 'rb')
             else:
                 raise Error("Could not find nomad file number " + nomad_filenum_str)
             for j in np.where(file_numbers == file_numbers[i])[0]:
@@ -469,12 +477,16 @@ def fetch_star_by_nomad_id(nomad_ids, epoch=None):
             f.close()
     df = _convert_raw_byte_data_to_dataframe(''.join(raw_byte_data), nomad_ids=nomad_ids)
     if epoch is None:
-        return _add_skycoord_radec_field(_apply_proper_motion(df, epoch=2000.0))
+        returned_star = _apply_proper_motion(df, epoch=2000.0)
     else:
-        return _add_skycoord_radec_field(_apply_proper_motion(df, epoch=epoch))
+        returned_star = _apply_proper_motion(df, epoch=epoch)
+    if add_SkyCoord_field:
+        return _add_skycoord_radec_field(returned_star)
+    else:
+        return returned_star
 
 
-def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
+def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
     """
     ra_range - [>=low, <high] RA in degrees
                can wrap around 360, e.g. [359.5, 0.5]
@@ -509,10 +521,10 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
     for cur_dec_filenum in np.arange(min_dec_filenum, max_dec_filenum + 1):
         records_to_retrieve = _determine_record_numbers_to_retrieve(min_ra_swatch, max_ra_swatch, cur_dec_filenum)
         nomad_filenum_str = '%04i' % cur_dec_filenum
-        if os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat'):
-            f = open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat', 'rb')
-        elif os.path.isfile(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat.gz'):
-            f = gzip.open(_nomad_dir + nomad_filenum_str[0:3] + '/m' + nomad_filenum_str + '.cat.gz', 'rb')
+        if os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat')):
+            f = open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat'), 'rb')
+        elif os.path.isfile(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat.gz')):
+            f = gzip.open(os.path.join(_nomad_dir, nomad_filenum_str[0:3], 'm' + nomad_filenum_str + '.cat.gz'), 'rb')
         else:
             raise Error("Could not find nomad file number " + nomad_filenum_str)
         for cur_rec in records_to_retrieve:
@@ -525,7 +537,10 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
         stars = stars[(stars['RAJ2000'] >= ra_range[0]) & (stars['RAJ2000'] < ra_range[1])]
     else:
         stars = stars[(stars['RAJ2000'] < ra_range[1]) | (stars['RAJ2000'] >= ra_range[0])]
-    return _add_skycoord_radec_field(stars)
+    if add_SkyCoord_field:
+        return _add_skycoord_radec_field(stars)
+    else:
+        return stars
 
 
 if __name__ == '__main__':

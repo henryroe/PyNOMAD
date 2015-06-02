@@ -10,7 +10,7 @@ __summary__ = "Routines for accessing a self-hosted local copy of the USNO NOMAD
 __uri__ = "https://github.com/henryroe/PyNOMAD"
 
 # VERSION should be PEP386 compatible (http://www.python.org/dev/peps/pep-0386)
-__version__ = "0.1.5"
+__version__ = "0.1.6dev"
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in __version__

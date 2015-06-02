@@ -3,6 +3,14 @@ PyNOMAD Change Log
 ~~~~~~~~~~~~~~~~~~
 
 ------------------
+v0.1.6dev, 2015-05-23
+------------------
+
+- add add_SkyCoord_field param to queries so that can toggle off if don't need.  The creation of SkyCoord objects is relatively slow.
+- made finding the nomad database dir more robust & able to find on other volumes (if not buried)
+- fixed a few bugs with paths if _nomad_dir isn't given a trailing '/'.  
+
+------------------
 v0.1.5, 2015-05-23
 ------------------
 
