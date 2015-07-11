@@ -7,8 +7,6 @@ import datetime
 import gzip
 import sys
 import pickle
-from astropy.coordinates import SkyCoord, ICRS
-from astropy import units
 import glob
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -285,14 +283,14 @@ def _determine_usnob1_id_from_usnob1_integer(usnob1_integer):
         return ('%04i' % file_number) + '-' + ('%07i' % star_number)
 
 
-def _process_epoch(epoch):
+def _datetime_to_decimal_year(epoch):
     """
     Input - datetime.datetime or datetime.date or integer year or float year
     Output - decimal year
     """
-    if type(epoch) == datetime.datetime:
+    if isinstance(epoch, datetime.datetime):
         return 2000.0 + (epoch - datetime.datetime(2000, 1, 1, 0, 0)).total_seconds() / (365.25 * 24. * 3600.)
-    elif type(epoch) == datetime.date:
+    elif isinstance(epoch, datetime.date):
         return 2000.0 + (datetime.datetime(epoch.year, epoch.month, epoch.day, 0, 0) -
                          datetime.datetime(2000, 1, 1, 0, 0)).total_seconds() / (365.25 * 24. * 3600.)
     else:
@@ -395,12 +393,6 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
     return df.drop(columns_to_drop, axis=1)
 
 
-def _add_skycoord_radec_field(df):
-    df['radec'] = SkyCoord(df['RAJ2000'].values, df['DEJ2000'].values, 
-                           frame=ICRS, unit=(units.degree, units.degree))
-    return df
-    
-
 def _apply_proper_motion(df, epoch=2000.0):
     """
     Apply proper motion for input epoch.
@@ -410,7 +402,7 @@ def _apply_proper_motion(df, epoch=2000.0):
     way is to reload the search for the new epoch.  The risk is the small edge case of a star that at epoch 1 is
     not in the requested field but is in the field at epoch 2.
     """
-    epoch = _process_epoch(epoch)
+    epoch = _datetime_to_decimal_year(epoch)
     years_since_2000 = epoch - 2000.0
     cosDec = np.cos(np.radians(df['DEJ2000_epoch2000']))
     pm_RA = df['proper motion of RA*COS(dec) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.) / cosDec
@@ -442,7 +434,7 @@ def _apply_proper_motion(df, epoch=2000.0):
     return df.drop(columns_to_drop, axis=1)
 
 
-def fetch_star_by_nomad_id(nomad_ids, epoch=None, add_SkyCoord_field=True):
+def fetch_star_by_nomad_id(nomad_ids, epoch=None):
     """
     nomad_ids - can be either a single NOMAD identifier, e.g.:
                     '0999-0192017'
@@ -476,13 +468,10 @@ def fetch_star_by_nomad_id(nomad_ids, epoch=None, add_SkyCoord_field=True):
         returned_star = _apply_proper_motion(df, epoch=2000.0)
     else:
         returned_star = _apply_proper_motion(df, epoch=epoch)
-    if add_SkyCoord_field:
-        return _add_skycoord_radec_field(returned_star)
-    else:
-        return returned_star
+    return returned_star
 
 
-def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
+def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
     """
     ra_range - [>=low, <high] RA in degrees
                can wrap around 360, e.g. [359.5, 0.5]
@@ -497,7 +486,7 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
     #     stars within a DEC swatch are >=minDec and <(minDec + 0.1deg)
     # RA swatches (within accelerator files) are 0.25 degree
     #     stars within a RA range are >=minRA and <(minRA + 0.25deg)
-    epoch = _process_epoch(epoch)
+    epoch = _datetime_to_decimal_year(epoch)
     years_since_2000 = epoch - 2000.0
     dec_oversearch = np.abs((years_since_2000 * _max_pm_DEC_arcsecPerYear) / 3600.)
     min_dec = max(-90.0, min(dec_range) - dec_oversearch)
@@ -532,10 +521,7 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
         stars = stars[(stars['RAJ2000'] >= ra_range[0]) & (stars['RAJ2000'] < ra_range[1])]
     else:
         stars = stars[(stars['RAJ2000'] < ra_range[1]) | (stars['RAJ2000'] >= ra_range[0])]
-    if add_SkyCoord_field:
-        return _add_skycoord_radec_field(stars)
-    else:
-        return stars
+    return stars
 
 
 if __name__ == '__main__':
