@@ -3,6 +3,7 @@ import os
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 import datetime
 import gzip
 import sys
@@ -286,15 +287,15 @@ def _determine_usnob1_id_from_usnob1_integer(usnob1_integer):
         return ('%04i' % file_number) + '-' + ('%07i' % star_number)
 
 
-def _process_epoch(epoch):
+def _datetime_to_decimal_year(epoch):
     """
     Input - datetime.datetime or datetime.date or integer year or float year
 
     Output - decimal year
     """
-    if type(epoch) == datetime.datetime:
+    if isinstance(epoch, datetime.datetime):
         return 2000.0 + (epoch - datetime.datetime(2000, 1, 1, 0, 0)).total_seconds() / (365.25 * 24. * 3600.)
-    elif type(epoch) == datetime.date:
+    elif isinstance(epoch, datetime.date):
         return 2000.0 + (datetime.datetime(epoch.year, epoch.month, epoch.day, 0, 0) -
                          datetime.datetime(2000, 1, 1, 0, 0)).total_seconds() / (365.25 * 24. * 3600.)
     else:
@@ -330,7 +331,7 @@ def _determine_record_numbers_to_retrieve(min_ra_swatch, max_ra_swatch, dec_file
                  acc.ix[23.75]['start_record'] + acc.ix[23.75]['num_records'] - 1)]
 
 
-def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
+def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None, add_SkyCoord_field=True, epoch=2000.):
     """
     Input is a byte string of one or more raw NOMAD catalog entries.
     if available, nomad_star_ids will be used to set the index of the returned DataFrame.
@@ -362,14 +363,85 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
        (21)   Tycho2 ID integer
        (22)   flags integer"""
     dtype = np.dtype([(a[a.find(')') + 1:].strip(), '<i4') for a in schema.splitlines()])
-    df = DataFrame(np.fromstring(raw_byte_data, dtype=dtype))
+    rec_array = np.fromstring(raw_byte_data, dtype=dtype)
+    # performance note:  
+    # it takes slightly longer to append float fields to the numpy record array 
+    # than to do the same in pandas DataFrame.  So, prefer to add/manipulate columns
+    # later.  HOWEVER, it takes MUCH longer to add an object (e.g. SkyCoord) column to
+    # DataFrame, so want to create and add that field before conversion to DataFrame.
+    rec_array = append_fields(rec_array, 'RAJ2000_epoch2000', 
+                              rec_array['RA at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600., 
+                              usemask=False)
+    rec_array = append_fields(rec_array, 'DEJ2000_epoch2000', 
+                              -90. + rec_array['SPD at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600., 
+                              usemask=False)
+    epoch_decimal_years = _datetime_to_decimal_year(epoch)
+    years_since_2000 = epoch_decimal_years - 2000.0
+    cosDec = np.cos(np.radians(rec_array['DEJ2000_epoch2000']))
+    pm_RA = rec_array['proper motion of RA*COS(dec) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.) / cosDec
+    rec_array = append_fields(rec_array, 'RAJ2000', 
+                              (rec_array['RAJ2000_epoch2000'] + pm_RA * years_since_2000) % 360.0,
+                              usemask=False)
+    pm_DEC = rec_array['proper motion of SPD in integer 0.0001 arcsec/year'] * (0.0001 / 3600.)
+    rec_array = append_fields(rec_array, 'DEJ2000',
+                              rec_array['DEJ2000_epoch2000'] + pm_DEC * years_since_2000, usemask=False)
+    rec_array = append_fields(rec_array, 'epoch', np.full(rec_array.shape, epoch), usemask=False)
+    years_since_central_epoch_RA = (epoch_decimal_years - 
+                                    rec_array['central epoch of RA in integer 0.001 year'] * 0.001)
+    base_err_RA = (rec_array['std. dev. of RA*COS(dec) in integer 0.001 arcsec at central epoch'] * 
+                   (0.001 / 3600.) / cosDec)
+    pm_err_RA = (years_since_central_epoch_RA *
+                 rec_array['std. dev. of (5) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.) / cosDec)
+    rec_array = append_fields(rec_array, 'errRAJ2000', np.sqrt((base_err_RA) ** 2 + (pm_err_RA) ** 2))
+    years_since_central_epoch_DEC = (epoch_decimal_years - 
+                                     rec_array['central epoch of SPD in integer 0.001 year'] * 0.001)
+    base_err_DEC = rec_array['std. dev. of SPD in integer 0.001 arcsec at central epoch'] * (0.001 / 3600.)
+    pm_err_DEC = (years_since_central_epoch_DEC *
+                  rec_array['std. dev. of (6) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.))
+    rec_array = append_fields(rec_array, 'errDEJ2000', np.sqrt((base_err_DEC) ** 2 + (pm_err_DEC) ** 2), 
+                              usemask=False)
+    rec_array = append_fields(rec_array, 'proper motion of RA*COS(dec) arcsec/year',
+                              rec_array['proper motion of RA*COS(dec) in integer 0.0001 arcsec/year'] * 0.0001,
+                              usemask=False)
+    rec_array = append_fields(rec_array, 'proper motion of Dec in arcsec/year',
+                              rec_array['proper motion of SPD in integer 0.0001 arcsec/year'] * 0.0001,
+                              usemask=False)
+    names = list(rec_array.dtype.names)
+    columns_to_drop = ['RAJ2000_epoch2000', 'DEJ2000_epoch2000',
+                       'std. dev. of RA*COS(dec) in integer 0.001 arcsec at central epoch',
+                       'std. dev. of SPD in integer 0.001 arcsec at central epoch',
+                       'proper motion of RA*COS(dec) in integer 0.0001 arcsec/year',
+                       'proper motion of SPD in integer 0.0001 arcsec/year',
+                       'std. dev. of (5) in integer 0.0001 arcsec/year',
+                       'std. dev. of (6) in integer 0.0001 arcsec/year',
+                       'central epoch of RA in integer 0.001 year',
+                       'central epoch of SPD in integer 0.001 year']
+    for name in columns_to_drop:
+        names.remove(name)
+    rec_array = rec_array[names]
+    if add_SkyCoord_field:
+        a = datetime.datetime.utcnow()
+        sc = SkyCoord(rec_array['RAJ2000'], rec_array['DEJ2000'], frame=ICRS, unit=(units.degree, units.degree))
+        b = datetime.datetime.utcnow()
+        rec_dict = {a:rec_array[a] for a in rec_array.dtype.names}
+#         rec_dict['radec'] = sc
+#         rec_array = append_fields(rec_array, 'radec', sc, usemask=False)
+        c = datetime.datetime.utcnow()
+        print("create SkyCoord = {}sec".format((b-a).total_seconds()))
+        print("add SkyCoord column to rec_array = {}sec".format((c-b).total_seconds()))
+        df = DataFrame(rec_dict)
+        print("create DataFrame = {}sec".format((datetime.datetime.utcnow() - c).total_seconds()))
+    else:
+        df = DataFrame(rec_array)
+
+#     df = DataFrame(np.fromstring(raw_byte_data, dtype=dtype))
     if nomad_ids is not None:
         if type(nomad_ids) == str:
             df.index = [nomad_ids]
         else:
             df.index = nomad_ids
-    df['RAJ2000_epoch2000'] = df['RA at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600.
-    df['DEJ2000_epoch2000'] = -90. + df['SPD at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600.
+#     df['RAJ2000_epoch2000'] = df['RA at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600.
+#     df['DEJ2000_epoch2000'] = -90. + df['SPD at 2000.0 in integer 0.001 arcsec'] * 0.001 / 3600.
     df['Bmag'] = df['B magnitude in integer 0.001 mag'] * 0.001
     df['Vmag'] = df['V magnitude in integer 0.001 mag'] * 0.001
     df['Rmag'] = df['R magnitude in integer 0.001 mag'] * 0.001
@@ -399,8 +471,16 @@ def _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=None):
 
 
 def _add_skycoord_radec_field(df):
-    df['radec'] = SkyCoord(df['RAJ2000'].values, df['DEJ2000'].values, 
-                           frame=ICRS, unit=(units.degree, units.degree))
+    a = datetime.datetime.utcnow()
+    sc = SkyCoord(df['RAJ2000'].values, df['DEJ2000'].values, 
+                  frame=ICRS, unit=(units.degree, units.degree))
+    b = datetime.datetime.utcnow()
+    df['radec'] = sc
+    c = datetime.datetime.utcnow()
+    print("create SkyCoord = {}sec".format((b-a).total_seconds()))
+    print("add SkyCoord column to df = {}sec".format((c-b).total_seconds()))
+#     df['radec'] = SkyCoord(df['RAJ2000'].values, df['DEJ2000'].values, 
+#                            frame=ICRS, unit=(units.degree, units.degree))
     return df
     
 
@@ -414,7 +494,7 @@ def _apply_proper_motion(df, epoch=2000.0):
     way is to reload the search for the new epoch.  The risk is the small edge case of a star that at epoch 1 is
     not in the requested field but is in the field at epoch 2.
     """
-    epoch = _process_epoch(epoch)
+    epoch = _datetime_to_decimal_year(epoch)
     years_since_2000 = epoch - 2000.0
     cosDec = np.cos(np.radians(df['DEJ2000_epoch2000']))
     pm_RA = df['proper motion of RA*COS(dec) in integer 0.0001 arcsec/year'] * (0.0001 / 3600.) / cosDec
@@ -475,7 +555,8 @@ def fetch_star_by_nomad_id(nomad_ids, epoch=None, add_SkyCoord_field=True):
                 f.seek(_nomad_record_length_bytes * (star_numbers[j] - 1))
                 raw_byte_data[j] = f.read(_nomad_record_length_bytes)
             f.close()
-    df = _convert_raw_byte_data_to_dataframe(''.join(raw_byte_data), nomad_ids=nomad_ids)
+    df = _convert_raw_byte_data_to_dataframe(''.join(raw_byte_data), nomad_ids=nomad_ids,
+                                             add_SkyCoord_field=add_SkyCoord_field)
     if epoch is None:
         returned_star = _apply_proper_motion(df, epoch=2000.0)
     else:
@@ -502,7 +583,7 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
     #     stars within a DEC swatch are >=minDec and <(minDec + 0.1deg)
     # RA swatches (within accelerator files) are 0.25 degree
     #     stars within a RA range are >=minRA and <(minRA + 0.25deg)
-    epoch = _process_epoch(epoch)
+    epoch = _datetime_to_decimal_year(epoch)
     years_since_2000 = epoch - 2000.0
     dec_oversearch = np.abs((years_since_2000 * _max_pm_DEC_arcsecPerYear) / 3600.)
     min_dec = max(-90.0, min(dec_range) - dec_oversearch)
@@ -531,16 +612,16 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0, add_SkyCoord_field=True):
             f.seek((cur_rec[0] - 1) * _nomad_record_length_bytes)
             raw_byte_data += f.read((cur_rec[1] - cur_rec[0] + 1) * _nomad_record_length_bytes)
             nomad_ids.extend([nomad_filenum_str + '-' + ('%07i' % a) for a in range(cur_rec[0], cur_rec[1] + 1)])
-    stars = _apply_proper_motion(_convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=nomad_ids), epoch=epoch)
+    a = datetime.datetime.utcnow()
+    stars = _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=nomad_ids,
+                                                add_SkyCoord_field=add_SkyCoord_field, epoch=epoch)
+    print('_convert_raw_byte_data_to_dataframe took {}sec'.format((datetime.datetime.utcnow() - a).total_seconds()))
     stars = stars[(stars['DEJ2000'] >= min(dec_range)) & (stars['DEJ2000'] < max(dec_range))]
     if min_ra <= max_ra:
         stars = stars[(stars['RAJ2000'] >= ra_range[0]) & (stars['RAJ2000'] < ra_range[1])]
     else:
         stars = stars[(stars['RAJ2000'] < ra_range[1]) | (stars['RAJ2000'] >= ra_range[0])]
-    if add_SkyCoord_field:
-        return _add_skycoord_radec_field(stars)
-    else:
-        return stars
+    return stars
 
 
 if __name__ == '__main__':
