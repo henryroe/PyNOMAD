@@ -3,6 +3,12 @@ PyNOMAD Change Log
 ~~~~~~~~~~~~~~~~~~
 
 ------------------
+v0.1.7, 2016-03-23
+------------------
+
+- added function to read in one whole catalog file (nomad.read_one_catalog_file), which can be useful when creating subsets of the whole catalog (e.g. every star within a narrow color range across whole sky)
+
+------------------
 v0.1.6, 2015-07-10
 ------------------
 

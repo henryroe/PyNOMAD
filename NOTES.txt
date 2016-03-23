@@ -118,3 +118,17 @@ Now, finally ready to do a final build, tag release version, upload to github, a
     python setup.py bdist_wheel
     twine upload -r pypi dist/*
 
+----
+
+2016-03-23 14:58MST: setting up a dev env in conda:
+
+    conda create --name nomad-dev --clone default
+    source activate nomad-dev
+    pip uninstall pynomad
+    cd Dropbox/py/PyNOMAD/
+    python setup.py develop
+    cd ..
+    ipython
+    import nomad
+    nomad.__version__
+

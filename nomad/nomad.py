@@ -8,6 +8,7 @@ import gzip
 import sys
 import pickle
 import glob
+import re
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -524,6 +525,28 @@ def fetch_nomad_box(ra_range, dec_range, epoch=2000.0):
     return stars
 
 
+def read_one_catalog_file(filename):
+    """
+    Usage:
+        stars = read_one_catalog_file('/Volumes/catalogs/nomad_gz/123/m1234.cat.gz')
+    
+    This routine is not used by other nomad routines and is here as a convenience to users
+    when, e.g., needing to create a subset catalog such as every star on the sky within
+    a narrow color or magnitude range.
+    
+    NOTE: currently does not apply proper motions.
+    """
+    if not os.path.isfile(filename):
+        raise Error("Filename {0} does not exist.".format(filename))
+    nomad_filenum_str = re.findall('m(\d\d\d\d)\.cat', filename)[0]
+    with gzip.open(filename, 'rb') as f:
+        raw_byte_data = f.read()
+    n_records = len(raw_byte_data) / _nomad_record_length_bytes
+    nomad_ids = [nomad_filenum_str + '-' + ('%07i' % a) for a in np.arange(1, n_records + 1)]
+    stars = _convert_raw_byte_data_to_dataframe(raw_byte_data, nomad_ids=nomad_ids)
+    return stars
+    
+    
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         pass
