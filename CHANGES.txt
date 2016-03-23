@@ -2,6 +2,12 @@
 PyNOMAD Change Log
 ~~~~~~~~~~~~~~~~~~
 
+--------------------
+v0.1.7-1, 2016-03-23
+--------------------
+
+- added optional epoch for applying proper motions in nomad.read_one_catalog_file, which fixes a problem with the formatting of the output
+
 ------------------
 v0.1.7, 2016-03-23
 ------------------
